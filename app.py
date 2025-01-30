@@ -1,23 +1,22 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_mail import Mail, Message
-import re
 
 app = Flask(__name__)
 
-# Flask-Mail Configuration (Use SMTP for sending emails)
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # For Gmail, or adjust if using another provider
-app.config['MAIL_PORT'] = 587  # Use 465 for SSL, 587 for TLS
-app.config['MAIL_USE_TLS'] = True  # Use TLS
-app.config['MAIL_USERNAME'] = 'your-email@gmail.com'  # Your Gmail address
-app.config['MAIL_PASSWORD'] = 'your-email-password'  # Your email password (or app-specific password)
-app.config['MAIL_DEFAULT_SENDER'] = 'your-email@gmail.com'
+# Set secret key for flash messages
+app.secret_key = 'your_secret_key'
+
+# Set up Flask-Mail
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'  # Use Gmail SMTP server (or your email provider)
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'your_email@gmail.com'  # Your email address
+app.config['MAIL_PASSWORD'] = 'your_email_password'  # Your email password
 
 mail = Mail(app)
 
-# Secret key to allow flashing messages
-app.secret_key = 'your-secret-key'
-
-@app.route('/', methods=['GET', 'POST'])
+# Route for the contact form
+@app.route('/contact', methods=['GET', 'POST'])
 def contact():
     if request.method == 'POST':
         name = request.form['name']
@@ -25,31 +24,18 @@ def contact():
         subject = request.form['subject']
         message = request.form['message']
 
-        # Validate the form inputs
-        if not name or not email or not subject or not message:
-            flash('All fields are required!', 'error')
-            return redirect(url_for('contact'))
-
-        # Email validation
-        if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-            flash('Invalid email address!', 'error')
-            return redirect(url_for('contact'))
-
-        # Compose email message
-        msg = Message(subject,
-                      recipients=['recipient@example.com'],  # Replace with the real recipient's email
-                      body=f"Message from: {name}\nEmail: {email}\n\n{message}")
-
+        # Send email
+        msg = Message(subject, sender=email, recipients=['your_email@gmail.com'])
+        msg.body = f"Message from: {name}\n\nEmail: {email}\n\nMessage: {message}"
         try:
-            # Send the email
             mail.send(msg)
-            flash('Your message has been sent successfully!', 'success')
-            return redirect(url_for('contact'))
-        except Exception as e:
-            flash(f'Error: {str(e)}', 'error')
-            return redirect(url_for('contact'))
+            flash(('success', 'Your message has been sent!'))
+        except:
+            flash(('error', 'There was an error sending your message. Please try again.'))
 
-    return render_template('contact.html')
+        return redirect(url_for('contact'))  # Redirect to same page to show success/error message
 
+    return render_template('index.html')  # Change 'index.html' to the name of your template
+    
 if __name__ == '__main__':
     app.run(debug=True)
